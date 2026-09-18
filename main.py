@@ -9,7 +9,7 @@ from optimizer import solve_energy_schedule
 from validator import validate_schedule
 
 # Avoid leaking sensitive stack traces
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="GridWise Optimization API")
@@ -20,6 +20,17 @@ async def validation_exception_handler(request, exc):
         status_code=400,
         content={"detail": "Malformed JSON or structurally invalid request."}
     )
+
+import time
+from fastapi import Request
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    logger.info(f"Request to {request.url.path} completed in {process_time:.4f} seconds")
+    return response
 
 @app.get("/health")
 async def health_check():
@@ -32,8 +43,8 @@ def optimize_energy(request: OptimizeRequest):
         try:
             raw_interpretations = interpret_notes(request.operator_notes, request.battery.capacity_kwh)
         except Exception as e:
-            logger.error(f"LLM interpretation failed: {e}")
-            raise HTTPException(status_code=500, detail="Failed to process operator notes due to provider error.")
+            logger.error(f"Unexpected error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Unable to process the request due to an internal or external error.")
 
         # 2. Guardrails validation
         interpretations = validate_interpretations(raw_interpretations, request)

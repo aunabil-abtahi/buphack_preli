@@ -150,6 +150,9 @@ def run_all_tests():
     print(f"{'Case ID':<15} | {'Interpretation':<15} | {'Schedule':<10} | {'Ret Cost':<10} | {'Ref Cost':<10} | {'Overall':<10} | {'Reason'}")
     print("-" * 100)
     
+    total_elapsed_time = 0.0
+    successful_calls = 0
+
     for case in cases:
         case_id = case["id"]
         req_data = case["input"]
@@ -158,10 +161,16 @@ def run_all_tests():
         try:
             import time
             time.sleep(2)
+            start_time = time.time()
             resp = requests.post(api_url, json=req_data, timeout=60)
+            elapsed = time.time() - start_time
+            
             if resp.status_code != 200:
                 print(f"{case_id:<15} | FAIL            | FAIL       | N/A        | {expected['total_cost_bdt']:<10} | FAIL       | HTTP {resp.status_code}: {resp.text}")
                 continue
+            
+            total_elapsed_time += elapsed
+            successful_calls += 1
             
             data = resp.json()
             
@@ -194,6 +203,10 @@ def run_all_tests():
             
         except Exception as e:
             print(f"{case_id:<15} | ERROR           | ERROR      | N/A        | {expected['total_cost_bdt']:<10} | FAIL       | Exception: {e}")
+
+    if successful_calls > 0:
+        avg_time = total_elapsed_time / successful_calls
+        print(f"\nAverage local response time: {avg_time:.2f} seconds")
 
 if __name__ == "__main__":
     run_all_tests()

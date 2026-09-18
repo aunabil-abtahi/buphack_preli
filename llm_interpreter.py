@@ -43,6 +43,21 @@ def interpret_notes(notes: List[str], capacity: float) -> List[DirectiveInterpre
     prompt = PROMPT_TEMPLATE.format(capacity=capacity, notes=notes_text)
     
     max_retries = 5
+    import hashlib
+    import json
+    import os
+    
+    # Simple caching to avoid hitting LLM rate limits during test suites
+    cache_dir = ".llm_cache"
+    os.makedirs(cache_dir, exist_ok=True)
+    prompt_hash = hashlib.md5(prompt.encode('utf-8')).hexdigest()
+    cache_file = os.path.join(cache_dir, f"{prompt_hash}.json")
+    
+    if os.path.exists(cache_file):
+        with open(cache_file, "r") as f:
+            data = json.load(f)
+            return [DirectiveInterpretation(**item) for item in data]
+
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
@@ -54,7 +69,10 @@ def interpret_notes(notes: List[str], capacity: float) -> List[DirectiveInterpre
                     temperature=0.0
                 ),
             )
-            return response.parsed.directive_interpretation
+            result = response.parsed.directive_interpretation
+            with open(cache_file, "w") as f:
+                json.dump([item.model_dump() for item in result], f)
+            return result
         except Exception as e:
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
