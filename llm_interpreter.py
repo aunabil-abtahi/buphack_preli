@@ -1,4 +1,4 @@
-import os
+import time
 from typing import List
 from google import genai
 from pydantic import BaseModel
@@ -34,20 +34,29 @@ Operator Notes:
 {notes}
 """
 
+# Global client initialization
+client = genai.Client()
+MODEL_NAME = "gemini-3.5-flash"
+
 def interpret_notes(notes: List[str], capacity: float) -> List[DirectiveInterpretation]:
-    client = genai.Client()
-    
     notes_text = "\n".join([f"{i}. {note}" for i, note in enumerate(notes)])
     prompt = PROMPT_TEMPLATE.format(capacity=capacity, notes=notes_text)
     
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt,
-        config=genai.types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=LLMResponse,
-            temperature=0.0
-        ),
-    )
-    
-    return response.parsed.directive_interpretation
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=LLMResponse,
+                    temperature=0.0
+                ),
+            )
+            return response.parsed.directive_interpretation
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+            else:
+                raise e

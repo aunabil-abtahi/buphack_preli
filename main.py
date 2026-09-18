@@ -26,13 +26,13 @@ async def health_check():
     return {"status": "ok"}
 
 @app.post("/optimize-energy", response_model=OptimizeResponse)
-async def optimize_energy(request: OptimizeRequest):
+def optimize_energy(request: OptimizeRequest):
     try:
         # 1. LLM Interpretation
         try:
             raw_interpretations = interpret_notes(request.operator_notes, request.battery.capacity_kwh)
         except Exception as e:
-            logger.error("LLM interpretation failed.")
+            logger.error(f"LLM interpretation failed: {e}")
             raise HTTPException(status_code=500, detail="Failed to process operator notes due to provider error.")
 
         # 2. Guardrails validation

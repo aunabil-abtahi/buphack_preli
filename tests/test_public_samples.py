@@ -156,7 +156,9 @@ def run_all_tests():
         expected = case["expected_output"]
         
         try:
-            resp = requests.post(api_url, json=req_data, timeout=30)
+            import time
+            time.sleep(2)
+            resp = requests.post(api_url, json=req_data, timeout=60)
             if resp.status_code != 200:
                 print(f"{case_id:<15} | FAIL            | FAIL       | N/A        | {expected['total_cost_bdt']:<10} | FAIL       | HTTP {resp.status_code}: {resp.text}")
                 continue
