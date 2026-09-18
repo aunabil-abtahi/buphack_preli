@@ -1,5 +1,10 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import logging
-from fastapi import FastAPI, HTTPException
+import time
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from models import OptimizeRequest, OptimizeResponse
