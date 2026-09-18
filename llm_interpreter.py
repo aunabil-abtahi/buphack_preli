@@ -35,10 +35,14 @@ Operator Notes:
 """
 
 # Global client initialization
-client = genai.Client()
+client = None
 MODEL_NAME = "gemini-3.5-flash"
 
 def interpret_notes(notes: List[str], capacity: float) -> List[DirectiveInterpretation]:
+    global client
+    if client is None:
+        client = genai.Client()
+        
     notes_text = "\n".join([f"{i}. {note}" for i, note in enumerate(notes)])
     prompt = PROMPT_TEMPLATE.format(capacity=capacity, notes=notes_text)
     
